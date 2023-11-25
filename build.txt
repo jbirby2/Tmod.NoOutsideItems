@@ -1,0 +1,3 @@
+displayName = No Outside Items!
+author = Joe Irby
+version = 0.1

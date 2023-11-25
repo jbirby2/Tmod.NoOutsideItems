@@ -1,0 +1,17 @@
+Items: {
+	OutsideItem: {
+		DisplayName: Outside Item
+		Tooltip: ""
+	}
+}
+
+Configs: {
+	ClientConfig: {
+		DisplayName: Client Config
+
+		AllowOutsideItemsInSinglePlayer: {
+			Label: Allow Outside Items In Single Player
+			Tooltip: ""
+		}
+	}
+}
