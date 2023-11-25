@@ -13,8 +13,6 @@ using Terraria.ModLoader.IO;
 
 namespace NoOutsideItems
 {
-    // joestub see WeaponWithGrowingDamage in ExampleMod
-
     public class NoiGlobalItem : GlobalItem
     {
         public string WorldID = "";
@@ -27,27 +25,44 @@ namespace NoOutsideItems
 
         public override void SaveData(Item item, TagCompound tag)
         {
-            if (Main.netMode != NetmodeID.Server && item.type != ModContent.ItemType<OutsideItem>())
+            // On the server side, we only bother saving the WorldID and WorldName if they differ from the current world
+            if (item.type != ModContent.ItemType<OutsideItem>() && (Main.netMode != NetmodeID.Server || WorldID != NoiSystem.WorldID))
             {
-                if (!String.IsNullOrWhiteSpace(WorldID))
-                    tag["WorldID"] = WorldID;
-
-                if (!String.IsNullOrWhiteSpace(WorldName))
-                    tag["WorldName"] = WorldName;
+                tag["WorldID"] = WorldID;
+                tag["WorldName"] = WorldName;
             }
         }
 
         public override void LoadData(Item item, TagCompound tag)
         {
-            if (Main.netMode != NetmodeID.Server && item.type != ModContent.ItemType<OutsideItem>())
+            if (item.type != ModContent.ItemType<OutsideItem>())
             {
-                if (tag.ContainsKey("WorldID"))
-                    WorldID = tag.Get<string>("WorldID");
-
-                if (tag.ContainsKey("WorldName"))
-                    WorldName = tag.Get<string>("WorldName");
+                WorldID = tag.Get<string>("WorldID");
+                WorldName = tag.Get<string>("WorldName");
             }
         }
+
+        public override void NetSend(Item item, BinaryWriter writer)
+        {
+            // Don't waste bandwidth sending the WorldID and WorldName if they're for the current world
+            if (WorldID == NoiSystem.WorldID)
+            {
+                writer.Write(""); // WorldID
+                writer.Write(""); // WorldName
+            }
+            else
+            {
+                writer.Write(WorldID);
+                writer.Write(WorldName);
+            }
+        }
+
+        public override void NetReceive(Item item, BinaryReader reader)
+        {
+            WorldID = reader.ReadString();
+            WorldName = reader.ReadString();
+        }
+
 
         public void SetWorldIDToCurrentWorld()
         {

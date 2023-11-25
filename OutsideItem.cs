@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -71,6 +72,26 @@ namespace NoOutsideItems
             OriginalStack = tag.GetInt("OriginalStack");
             OriginalPrefix = tag.GetInt("OriginalPrefix");
             OriginalData = tag.GetCompound("OriginalData");
+        }
+
+        public override void NetSend(BinaryWriter writer)
+        {
+            writer.Write(OriginalWorldID);
+            writer.Write(OriginalWorldName);
+            writer.Write(OriginalType);
+            writer.Write(OriginalStack);
+            writer.Write(OriginalPrefix);
+            TagIO.Write(OriginalData, writer);
+        }
+
+        public override void NetReceive(BinaryReader reader)
+        {
+            OriginalWorldID = reader.ReadString();
+            OriginalWorldName = reader.ReadString();
+            OriginalType = reader.ReadInt32();
+            OriginalStack = reader.ReadInt32();
+            OriginalPrefix = reader.ReadInt32();
+            OriginalData = TagIO.Read(reader);
         }
 
         public override void ModifyTooltips(List<TooltipLine> tooltips)
