@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using Terraria;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
@@ -14,6 +15,58 @@ namespace NoOutsideItems
         public override void PostSetupContent()
         {
             OutsideItemType = ModContent.ItemType<OutsideItem>();
+        }
+
+        public void ApplyRulesToPlayerInventory()
+        {
+            if (Main.netMode == NetmodeID.Server || !Main.LocalPlayer.active)
+                return;
+
+            bool allowOutsideItemsInSinglePlayer = ModContent.GetInstance<ClientConfig>().AllowOutsideItemsInSinglePlayer;
+            bool importUnknownItemsOnFirstLogin = ModContent.GetInstance<ServerConfig>().ImportUnknownItemsOnFirstLogin;
+            var noiPlayer = Main.LocalPlayer.GetModPlayer<NoiPlayer>();
+
+            bool consumePlayerImportOnThisWorld = false;
+            foreach (var item in noiPlayer.GetAllActiveItems())
+            {
+                var noiItem = item.GetGlobalItem<NoiGlobalItem>();
+
+                if (item.type == NoOutsideItems.OutsideItemType)
+                {
+                    string originalWorldID = ((OutsideItem)item.ModItem).OriginalWorldID;
+
+                    if (originalWorldID == NoiSystem.WorldID || (Main.netMode == NetmodeID.SinglePlayer && allowOutsideItemsInSinglePlayer))
+                    {
+                        ChangeBackToOriginalItem(item);
+                    }
+                    else if (originalWorldID == "unknown" && importUnknownItemsOnFirstLogin && !noiPlayer.ServersWherePlayerHasUsedImport.Contains(NoiSystem.WorldID))
+                    {
+                        ChangeBackToOriginalItem(item);
+                        noiItem = item.GetGlobalItem<NoiGlobalItem>(); // not sure if it's necessary to get a fresh reference to NoiGlobalItem after calling ChangeBackToOriginalItem(item), but doing it to be safe
+                        noiItem.SetWorldIDToCurrentWorld();
+                        consumePlayerImportOnThisWorld = true;
+                    }
+                }
+                else
+                {
+                    if (noiItem.WorldID == "unknown" && importUnknownItemsOnFirstLogin && !noiPlayer.ServersWherePlayerHasUsedImport.Contains(NoiSystem.WorldID))
+                    {
+                        noiItem.SetWorldIDToCurrentWorld();
+                        consumePlayerImportOnThisWorld = true;
+                    }
+                    else if (noiItem.WorldID != NoiSystem.WorldID && (Main.netMode != NetmodeID.SinglePlayer || !allowOutsideItemsInSinglePlayer))
+                    {
+                        ChangeToOutsideItem(item);
+                    }
+
+                }
+            }
+
+            if (consumePlayerImportOnThisWorld)
+                noiPlayer.ServersWherePlayerHasUsedImport.Add(NoiSystem.WorldID);
+
+            if (Main.netMode == NetmodeID.MultiplayerClient)
+                NetMessage.SendData(MessageID.SyncPlayer, -1, -1, null, Main.myPlayer);
         }
 
         public void ChangeToOutsideItem(Item item)

@@ -57,26 +57,20 @@ namespace NoOutsideItems
 
             foreach (var item in noiPlayer.GetAllActiveItems())
             {
-                preSaveAndQuit_HandleItem(item, noiMod);
-            }
-        }
-
-        private void preSaveAndQuit_HandleItem(Item item, NoOutsideItems noiMod)
-        {
-            if (item.type == NoOutsideItems.OutsideItemType)
-            {
-                // Change all of the player's OutsideItems back to their original states whenever the player leaves the world
-                noiMod.ChangeBackToOriginalItem(item);
-            }
-            else
-            {
-                var noiItem = item.GetGlobalItem<NoiGlobalItem>();
-
-                if (String.IsNullOrWhiteSpace(noiItem.WorldID) && !String.IsNullOrWhiteSpace(NoiSystem.WorldID))
+                if (item.type == NoOutsideItems.OutsideItemType)
                 {
-                    // This item must have been obtained during this play session, so set its WorldID and WorldName
-                    noiItem.WorldID = NoiSystem.WorldID;
-                    noiItem.WorldName = Main.worldName ?? "";
+                    // Change all of the player's OutsideItems back to their original states whenever the player leaves the world
+                    noiMod.ChangeBackToOriginalItem(item);
+                }
+                else
+                {
+                    var noiItem = item.GetGlobalItem<NoiGlobalItem>();
+
+                    if (String.IsNullOrWhiteSpace(noiItem.WorldID) && !String.IsNullOrWhiteSpace(NoiSystem.WorldID))
+                    {
+                        // This item must have been obtained during this play session, so set its WorldID and WorldName
+                        noiItem.SetWorldIDToCurrentWorld();
+                    }
                 }
             }
         }

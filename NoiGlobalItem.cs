@@ -49,5 +49,10 @@ namespace NoOutsideItems
             }
         }
 
+        public void SetWorldIDToCurrentWorld()
+        {
+            WorldID = NoiSystem.WorldID;
+            WorldName = Main.worldName ?? "";
+        }
     }
 }

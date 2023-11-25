@@ -20,25 +20,7 @@ namespace NoOutsideItems
 
         public override void OnChanged()
         {
-            if (Main.netMode == NetmodeID.SinglePlayer && Main.LocalPlayer.active)
-            {
-                var noiMod = (NoOutsideItems)this.Mod;
-                var noiPlayer = Main.LocalPlayer.GetModPlayer<NoiPlayer>();
-
-                foreach (var item in noiPlayer.GetAllActiveItems())
-                {
-                    if (AllowOutsideItemsInSinglePlayer && item.type == NoOutsideItems.OutsideItemType)
-                    {
-                        noiMod.ChangeBackToOriginalItem(item);
-                    }
-                    else if (!AllowOutsideItemsInSinglePlayer && item.type != NoOutsideItems.OutsideItemType)
-                    {
-                        var noiItem = item.GetGlobalItem<NoiGlobalItem>();
-                        if (noiItem.WorldID != NoiSystem.WorldID)
-                            noiMod.ChangeToOutsideItem(item);
-                    }
-                }
-            }
+            ((NoOutsideItems)this.Mod).ApplyRulesToPlayerInventory();
         }
     }
 }

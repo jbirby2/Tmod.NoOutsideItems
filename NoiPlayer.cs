@@ -14,6 +14,55 @@ namespace NoOutsideItems
 {
     public class NoiPlayer : ModPlayer
     {
+        public IList<string> ServersWherePlayerHasUsedImport = new List<string>();
+
+        public override void OnEnterWorld()
+        {
+            foreach (var item in GetAllActiveItems())
+            {
+                var noiItem = item.GetGlobalItem<NoiGlobalItem>();
+
+                if (String.IsNullOrEmpty(noiItem.WorldID))
+                {
+                    noiItem.WorldID = "unknown";
+                    noiItem.WorldName = Language.GetTextValue("Unknown");
+                }
+            }
+
+            ((NoOutsideItems)this.Mod).ApplyRulesToPlayerInventory();
+        }
+
+        public override void PreSavePlayer()
+        {
+            if (Main.LocalPlayer.active)
+            {
+                var noiPlayer = Main.LocalPlayer.GetModPlayer<NoiPlayer>();
+
+                foreach (var item in noiPlayer.GetAllActiveItems())
+                {
+                    if (item.type != NoOutsideItems.OutsideItemType)
+                    {
+                        var noiItem = item.GetGlobalItem<NoiGlobalItem>();
+
+                        if (String.IsNullOrWhiteSpace(noiItem.WorldID) && !String.IsNullOrWhiteSpace(NoiSystem.WorldID))
+                        {
+                            // This item must have been obtained during this play session, so set its WorldID and WorldName
+                            noiItem.SetWorldIDToCurrentWorld();
+                        }
+                    }
+                }
+            }
+        }
+
+        public override void SaveData(TagCompound tag)
+        {
+            tag["ServersWherePlayerHasUsedImport"] = ServersWherePlayerHasUsedImport;
+        }
+
+        public override void LoadData(TagCompound tag)
+        {
+            ServersWherePlayerHasUsedImport = tag.GetList<string>("ServersWherePlayerHasUsedImport");
+        }
 
         public IEnumerable<Item> GetAllActiveItems()
         {
@@ -29,63 +78,8 @@ namespace NoOutsideItems
             allItems.AddRange(this.Player.miscDyes.Where(item => item.active && item.type != ItemID.None));
             if (this.Player.trashItem.active && this.Player.trashItem.type != ItemID.None)
                 allItems.Add(this.Player.trashItem);
-    
+
             return allItems;
-        }
-
-        public override void OnEnterWorld()
-        {
-            var noiMod = (NoOutsideItems)this.Mod;
-            bool allowOutsideItemsInSinglePlayer = ModContent.GetInstance<ClientConfig>().AllowOutsideItemsInSinglePlayer;
-
-            noiMod.Logger.Debug("******* ENTERING WORLD *******"); // joestub
-
-            // Loop through every item in the player's inventory.
-            // If the item isn't from this world, then change it to an OutsideItem.
-            // If the item is from this world, but it was previously changed to an OutsideItem, then change it back.
-            bool needsResync = false;
-            foreach (var item in GetAllActiveItems())
-            {
-                needsResync = onEnterWorld_HandleItem(item, noiMod, allowOutsideItemsInSinglePlayer) || needsResync;
-            }
-
-            if (needsResync && Main.netMode == NetmodeID.MultiplayerClient)
-                NetMessage.SendData(MessageID.SyncPlayer, -1, -1, null, Main.myPlayer);
-        }
-
-        // returns true if the item was changed
-        private bool onEnterWorld_HandleItem(Item item, NoOutsideItems noiMod, bool allowOutsideItemsInSinglePlayer)
-        {
-            noiMod.Logger.Debug("onEnterWorld_HandleItem for " +  item.ToString());
-
-            var noiItem = item.GetGlobalItem<NoiGlobalItem>();
-
-            if (item.type == NoOutsideItems.OutsideItemType && noiItem.WorldID == NoiSystem.WorldID)
-            {
-                noiMod.ChangeBackToOriginalItem(item);
-                return true;
-            }
-            else if (item.type != NoOutsideItems.OutsideItemType)
-            {
-                bool changed = false;
-
-                if (String.IsNullOrEmpty(noiItem.WorldID))
-                {
-                    noiItem.WorldID = "unknown";
-                    noiItem.WorldName = Language.GetTextValue("Unknown");
-                    changed = true;
-                }
-
-                if (noiItem.WorldID != NoiSystem.WorldID && (Main.netMode != NetmodeID.SinglePlayer || !allowOutsideItemsInSinglePlayer))
-                {
-                    noiMod.ChangeToOutsideItem(item);
-                    changed = true;
-                }
-
-                return changed;
-            }
-
-            return false;
         }
     }
 }

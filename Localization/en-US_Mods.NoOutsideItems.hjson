@@ -14,4 +14,13 @@ Configs: {
 			Tooltip: ""
 		}
 	}
+
+	ServerConfig: {
+		DisplayName: Server Config
+
+		ImportUnknownItemsOnFirstLogin: {
+			Label: Import Unknown Items On First Login
+			Tooltip: ""
+		}
+	}
 }

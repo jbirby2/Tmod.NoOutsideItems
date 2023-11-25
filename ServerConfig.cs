@@ -20,6 +20,7 @@ namespace NoOutsideItems
 
         public override void OnChanged()
         {
+            ((NoOutsideItems)this.Mod).ApplyRulesToPlayerInventory();
         }
     }
 }
