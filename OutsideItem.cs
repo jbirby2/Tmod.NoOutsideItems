@@ -100,9 +100,16 @@ namespace NoOutsideItems
 
             if (!String.IsNullOrWhiteSpace(OriginalWorldID))
             {
-                var worldLine = new TooltipLine(this.Mod, "OriginalWorld", Language.GetTextValue("World") + ": " + OriginalWorldName);
-                worldLine.OverrideColor = new Color(150, 150, 150);
-                tooltips.Add(worldLine);
+                var worldNameLine = new TooltipLine(this.Mod, "OriginalWorldName", Language.GetTextValue("World") + ": " + OriginalWorldName);
+                worldNameLine.OverrideColor = new Color(150, 150, 150);
+                tooltips.Add(worldNameLine);
+
+                if (ModContent.GetInstance<ClientConfig>().ShowWorldIDInItemTooltips)
+                {
+                    var worldIDLine = new TooltipLine(this.Mod, "WorldID", "ID: " + OriginalWorldID);
+                    worldIDLine.OverrideColor = new Color(150, 150, 150);
+                    tooltips.Add(worldIDLine);
+                }
             }
         }
     }

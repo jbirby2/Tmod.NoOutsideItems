@@ -10,7 +10,17 @@ Configs: {
 		DisplayName: Client Config
 
 		AllowOutsideItemsInSinglePlayer: {
-			Label: Allow Outside Items In Single Player
+			Label: Allow Outside Items in Single Player
+			Tooltip: ""
+		}
+
+		ShowWorldNameInItemTooltips: {
+			Label: Show World Name in Item Tooltips
+			Tooltip: ""
+		}
+
+		ShowWorldIDInItemTooltips: {
+			Label: Show World ID in Item Tooltips
 			Tooltip: ""
 		}
 	}
@@ -19,7 +29,7 @@ Configs: {
 		DisplayName: Server Config
 
 		ImportUnknownItemsOnFirstLogin: {
-			Label: Import Unknown Items On First Login
+			Label: Import Unknown Items on First Login
 			Tooltip: ""
 		}
 	}

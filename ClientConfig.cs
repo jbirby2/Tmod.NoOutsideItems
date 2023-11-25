@@ -17,6 +17,12 @@ namespace NoOutsideItems
         [DefaultValue(true)]
         public bool AllowOutsideItemsInSinglePlayer;
 
+        [DefaultValue(false)]
+        public bool ShowWorldNameInItemTooltips;
+
+        [DefaultValue(false)]
+        public bool ShowWorldIDInItemTooltips;
+
 
         public override void OnChanged()
         {
