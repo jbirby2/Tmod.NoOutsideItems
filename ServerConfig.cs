@@ -20,7 +20,8 @@ namespace NoOutsideItems
 
         public override void OnChanged()
         {
-            ((NoOutsideItems)this.Mod).ApplyRulesToPlayerInventory();
+            if (Main.LocalPlayer.active)
+                ((NoOutsideItems)this.Mod).DecideBans();
         }
     }
 }

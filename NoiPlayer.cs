@@ -16,22 +16,6 @@ namespace NoOutsideItems
     {
         public IList<string> ServersWherePlayerHasUsedImport = new List<string>();
 
-        public override void OnEnterWorld()
-        {
-            foreach (var item in GetAllActiveItems())
-            {
-                var noiItem = item.GetGlobalItem<NoiGlobalItem>();
-
-                if (String.IsNullOrEmpty(noiItem.WorldID))
-                {
-                    noiItem.WorldID = "unknown";
-                    noiItem.WorldName = Language.GetTextValue("Unknown");
-                }
-            }
-
-            ((NoOutsideItems)this.Mod).ApplyRulesToPlayerInventory();
-        }
-
         public override void PreSavePlayer()
         {
             if (Main.LocalPlayer.active)
@@ -40,14 +24,14 @@ namespace NoOutsideItems
 
                 foreach (var item in noiPlayer.GetAllActiveItems())
                 {
-                    if (item.type != NoOutsideItems.OutsideItemType)
+                    if (item.type != NoOutsideItems.BannedItemType)
                     {
                         var noiItem = item.GetGlobalItem<NoiGlobalItem>();
 
                         if (String.IsNullOrWhiteSpace(noiItem.WorldID) && !String.IsNullOrWhiteSpace(NoiSystem.WorldID))
                         {
                             // This item must have been obtained during this play session, so set its WorldID and WorldName
-                            noiItem.SetWorldIDToCurrentWorld();
+                            noiItem.SetWorldIDToCurrentWorld(item);
                         }
                     }
                 }
@@ -62,6 +46,22 @@ namespace NoOutsideItems
         public override void LoadData(TagCompound tag)
         {
             ServersWherePlayerHasUsedImport = tag.GetList<string>("ServersWherePlayerHasUsedImport");
+        }
+
+        public override bool OnPickup(Item item)
+        {
+            this.Mod.Logger.Debug("joestub NoiPlayer.OnPickup");
+
+            var noiItem = item.GetGlobalItem<NoiGlobalItem>();
+
+            if (item.type == NoOutsideItems.BannedItemType)
+                ((NoOutsideItems)this.Mod).DecideBans();
+            else if (String.IsNullOrWhiteSpace(noiItem.WorldID))
+                noiItem.SetWorldIDToCurrentWorld(item);
+            else if (noiItem.WorldID != NoiSystem.WorldID)
+                ((NoOutsideItems)this.Mod).DecideBans();
+
+            return true;
         }
 
         public IEnumerable<Item> GetAllActiveItems()

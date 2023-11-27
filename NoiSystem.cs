@@ -40,36 +40,28 @@ namespace NoOutsideItems
 
         public override void NetReceive(BinaryReader reader)
         {
-            // Remember, this is only called on the client
             WorldID = reader.ReadString();
         }
 
         public override void NetSend(BinaryWriter writer)
         {
-            // Remember, this is only called on the server
             writer.Write(WorldID);
         }
 
         public override void PreSaveAndQuit()
         {
-            var noiMod = (NoOutsideItems)this.Mod;
             var noiPlayer = Main.LocalPlayer.GetModPlayer<NoiPlayer>();
 
             foreach (var item in noiPlayer.GetAllActiveItems())
             {
-                if (item.type == NoOutsideItems.OutsideItemType)
-                {
-                    // Change all of the player's OutsideItems back to their original states whenever the player leaves the world
-                    noiMod.ChangeBackToOriginalItem(item);
-                }
-                else
+                if (item.type != NoOutsideItems.BannedItemType)
                 {
                     var noiItem = item.GetGlobalItem<NoiGlobalItem>();
 
                     if (String.IsNullOrWhiteSpace(noiItem.WorldID) && !String.IsNullOrWhiteSpace(NoiSystem.WorldID))
                     {
                         // This item must have been obtained during this play session, so set its WorldID and WorldName
-                        noiItem.SetWorldIDToCurrentWorld();
+                        noiItem.SetWorldIDToCurrentWorld(item);
                     }
                 }
             }
