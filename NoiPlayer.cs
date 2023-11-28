@@ -48,22 +48,6 @@ namespace NoOutsideItems
             ServersWherePlayerHasUsedImport = tag.GetList<string>("ServersWherePlayerHasUsedImport");
         }
 
-        public override bool OnPickup(Item item)
-        {
-            this.Mod.Logger.Debug("joestub NoiPlayer.OnPickup");
-
-            var noiItem = item.GetGlobalItem<NoiGlobalItem>();
-
-            if (item.type == NoOutsideItems.BannedItemType)
-                ((NoOutsideItems)this.Mod).DecideBans();
-            else if (String.IsNullOrWhiteSpace(noiItem.WorldID))
-                noiItem.SetWorldIDToCurrentWorld(item);
-            else if (noiItem.WorldID != NoiSystem.WorldID)
-                ((NoOutsideItems)this.Mod).DecideBans();
-
-            return true;
-        }
-
         public IEnumerable<Item> GetAllActiveItems()
         {
             var allItems = new List<Item>();

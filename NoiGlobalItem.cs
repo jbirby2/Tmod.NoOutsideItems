@@ -25,6 +25,14 @@ namespace NoOutsideItems
             get { return true; }
         }
 
+        public override bool CanStack(Item destination, Item source)
+        {
+            if (destination.active && source.active && destination.GetGlobalItem<NoiGlobalItem>().WorldID != source.GetGlobalItem<NoiGlobalItem>().WorldID)
+                return false;
+            else
+                return base.CanStack(destination, source);
+        }
+
         public override void SaveData(Item item, TagCompound tag)
         {
             // On the server side, we only bother saving the WorldID and WorldName if they differ from the current world (just to avoid unnecessarily wasting disk space, memory, network bandwidth)
@@ -72,11 +80,6 @@ namespace NoOutsideItems
             WorldName = reader.ReadString();
         }
 
-        public override void OnCreated(Item item, ItemCreationContext context)
-        {
-            SetWorldIDToCurrentWorld(item);
-        }
-
         public override void ModifyTooltips(Item item, List<TooltipLine> tooltips)
         {
             // Don't add these tooltips for BannedItemType because it handles its own tooltips in NoiBannedItem.cs; these tooltips are meant for all other item types.
@@ -104,5 +107,6 @@ namespace NoOutsideItems
                 WorldName = Main.worldName ?? "";
             }
         }
+
     }
 }

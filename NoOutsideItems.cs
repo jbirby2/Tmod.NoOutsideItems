@@ -14,6 +14,7 @@ namespace NoOutsideItems
 
         private static Mod itemBanMod = null;
         private static Func<Item, bool> decideBanCallback;
+        private static Action<Item> inventorySlotChangedCallback;
         private static Action<Item, Item> itemBannedCallback;
         private static Action bansCompleteCallback;
         private static bool consumePlayerImportOnBansComplete = false;
@@ -26,6 +27,9 @@ namespace NoOutsideItems
             decideBanCallback = (Func<Item, bool>)onDecideBan;
             itemBanMod.Call("OnDecideBan", decideBanCallback);
 
+            inventorySlotChangedCallback = (Action<Item>)onInventorySlotChanged;
+            itemBanMod.Call("OnInventorySlotChanged", inventorySlotChangedCallback);
+
             itemBannedCallback = (Action<Item, Item>)onItemBanned;
             itemBanMod.Call("OnItemBanned", itemBannedCallback);
 
@@ -36,6 +40,7 @@ namespace NoOutsideItems
         public override void Unload()
         {
             itemBanMod.Call("OffDecideBan", decideBanCallback);
+            itemBanMod.Call("OffInventorySlotChanged", inventorySlotChangedCallback);
             itemBanMod.Call("OffItemBanned", itemBannedCallback);
             itemBanMod.Call("OffBansComplete", bansCompleteCallback);
         }
@@ -66,6 +71,19 @@ namespace NoOutsideItems
             else
             {
                 return (noiItem.WorldID != NoiSystem.WorldID);
+            }
+        }
+
+        private void onInventorySlotChanged(Item item)
+        {
+            if (item.active)
+            {
+                var noiItem = item.GetGlobalItem<NoiGlobalItem>();
+
+                if (String.IsNullOrWhiteSpace(noiItem.WorldID))
+                    noiItem.SetWorldIDToCurrentWorld(item);
+                else if (noiItem.WorldID != NoiSystem.WorldID)
+                    DecideBans();
             }
         }
 
