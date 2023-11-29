@@ -16,6 +16,21 @@ namespace NoOutsideItems
     {
         public IList<string> ServersWherePlayerHasUsedImport = new List<string>();
 
+        public override void OnEnterWorld()
+        {
+            foreach (var item in GetAllActiveItems())
+            {
+                var noiItem = item.GetGlobalItem<NoiGlobalItem>();
+
+                // If there's no WorldID stored for this item, then it's impossible to ever know what world this item came from.
+                if (String.IsNullOrWhiteSpace(noiItem.WorldID))
+                {
+                    noiItem.WorldID = "unknown";
+                    noiItem.WorldName = Language.GetTextValue("Unknown");
+                }
+            }
+        }
+
         public override void PreSavePlayer()
         {
             if (Main.LocalPlayer.active)

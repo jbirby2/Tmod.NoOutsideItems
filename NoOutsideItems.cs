@@ -76,7 +76,7 @@ namespace NoOutsideItems
 
         private void onInventorySlotChanged(Item item)
         {
-            if (item.active)
+            if (item.active && item.type != BannedItemType && item.type != ItemID.None)
             {
                 var noiItem = item.GetGlobalItem<NoiGlobalItem>();
 

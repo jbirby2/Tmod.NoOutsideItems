@@ -49,13 +49,6 @@ namespace NoOutsideItems
             {
                 WorldID = tag.Get<string>("WorldID");
                 WorldName = tag.Get<string>("WorldName");
-
-                // If we're running on the client and there's no WorldID stored for this item, then it's impossible to ever know what world this item came from.
-                if (Main.netMode != NetmodeID.Server && String.IsNullOrWhiteSpace(WorldID))
-                {
-                    WorldID = "unknown";
-                    WorldName = Language.GetTextValue("Unknown");
-                }
             }
         }
 
