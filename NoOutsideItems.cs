@@ -16,8 +16,9 @@ namespace NoOutsideItems
         private static Func<Item, bool> decideBanCallback;
         private static Action<Item> inventorySlotChangedCallback;
         private static Action<Item, Item> itemBannedCallback;
-        private static Action bansCompleteCallback;
-        private static bool consumePlayerImportOnBansComplete = false;
+        private static Action clientBansCompleteCallback;
+        private static Action serverBansCompleteCallback;
+        private static bool consumePlayerImportOnClientBansComplete = false;
 
         public override void PostSetupContent()
         {
@@ -33,8 +34,11 @@ namespace NoOutsideItems
             itemBannedCallback = (Action<Item, Item>)onItemBanned;
             itemBanMod.Call("OnItemBanned", itemBannedCallback);
 
-            bansCompleteCallback = (Action)onBansComplete;
-            itemBanMod.Call("OnBansComplete", bansCompleteCallback);
+            clientBansCompleteCallback = (Action)onClientBansComplete;
+            itemBanMod.Call("OnClientBansComplete", clientBansCompleteCallback);
+
+            serverBansCompleteCallback = (Action)onServerBansComplete;
+            itemBanMod.Call("OnServerBansComplete", serverBansCompleteCallback);
         }
 
         public override void Unload()
@@ -42,35 +46,52 @@ namespace NoOutsideItems
             itemBanMod.Call("OffDecideBan", decideBanCallback);
             itemBanMod.Call("OffInventorySlotChanged", inventorySlotChangedCallback);
             itemBanMod.Call("OffItemBanned", itemBannedCallback);
-            itemBanMod.Call("OffBansComplete", bansCompleteCallback);
+            itemBanMod.Call("OffClientBansComplete", clientBansCompleteCallback);
+            itemBanMod.Call("OffServerBansComplete", serverBansCompleteCallback);
         }
 
-        public void DecideBans()
+        public void DecideBansOnClient()
         {
-            itemBanMod.Call("DecideBans");
+            if (itemBanMod != null)
+                itemBanMod.Call("DecideBansOnClient");
         }
+
+        public void DecideBansOnServer()
+        {
+            if (itemBanMod != null)
+                itemBanMod.Call("DecideBansOnServer");
+        }
+
 
         // private
 
         private bool onDecideBan(Item item)
         {
-            bool importUnknownItemsOnFirstLogin = ModContent.GetInstance<ServerConfig>().ImportUnknownItemsOnFirstLogin;
             var noiItem = item.GetGlobalItem<NoiGlobalItem>();
-            var noiPlayer = Main.LocalPlayer.GetModPlayer<NoiPlayer>();
 
-            if (noiItem.WorldID == "unknown" && importUnknownItemsOnFirstLogin && !noiPlayer.ServersWherePlayerHasUsedImport.Contains(NoiSystem.WorldID))
+            if (Main.netMode == NetmodeID.Server)
             {
-                noiItem.SetWorldIDToCurrentWorld(item);
-                consumePlayerImportOnBansComplete = true;
-                return false;
-            }
-            else if (Main.netMode == NetmodeID.SinglePlayer && ModContent.GetInstance<ClientConfig>().AllowOutsideItemsInSinglePlayer)
-            {
-                return false;
+                return (!String.IsNullOrWhiteSpace(noiItem.WorldID) && noiItem.WorldID != NoiSystem.WorldID);
             }
             else
             {
-                return (noiItem.WorldID != NoiSystem.WorldID);
+                bool importUnknownItemsOnFirstLogin = ModContent.GetInstance<ServerConfig>().ImportUnknownItemsOnFirstLogin;
+                var noiPlayer = Main.LocalPlayer.GetModPlayer<NoiPlayer>();
+
+                if (noiItem.WorldID == "unknown" && importUnknownItemsOnFirstLogin && !noiPlayer.ServersWherePlayerHasUsedImport.Contains(NoiSystem.WorldID))
+                {
+                    noiItem.SetWorldIDToCurrentWorld(item);
+                    consumePlayerImportOnClientBansComplete = true;
+                    return false;
+                }
+                else if (Main.netMode == NetmodeID.SinglePlayer && ModContent.GetInstance<ClientConfig>().AllowOutsideItemsInSinglePlayer)
+                {
+                    return false;
+                }
+                else
+                {
+                    return (noiItem.WorldID != NoiSystem.WorldID);
+                }
             }
         }
 
@@ -83,7 +104,7 @@ namespace NoOutsideItems
                 if (String.IsNullOrWhiteSpace(noiItem.WorldID))
                     noiItem.SetWorldIDToCurrentWorld(item);
                 else if (noiItem.WorldID != NoiSystem.WorldID)
-                    DecideBans();
+                    DecideBansOnClient();
             }
         }
 
@@ -92,20 +113,33 @@ namespace NoOutsideItems
             var noiBannedItem = item.GetGlobalItem<NoiBannedItem>();
             var noiOriginalItem = cloneOfOriginalItem.GetGlobalItem<NoiGlobalItem>();
 
-            noiBannedItem.OriginalWorldID = noiOriginalItem.WorldID;
-            noiBannedItem.OriginalWorldName = noiOriginalItem.WorldName;
+            if (Main.netMode == NetmodeID.Server && String.IsNullOrWhiteSpace(noiOriginalItem.WorldID))
+            {
+                // To avoid wasting resources, the server normally doesn't save its own WorldID and WorldName on server-side items.
+                noiBannedItem.OriginalWorldID = NoiSystem.WorldID;
+                noiBannedItem.OriginalWorldName = Main.worldName ?? "";
+            }
+            else
+            {
+                noiBannedItem.OriginalWorldID = noiOriginalItem.WorldID;
+                noiBannedItem.OriginalWorldName = noiOriginalItem.WorldName;
+            }
         }
 
-        private void onBansComplete()
+        private void onClientBansComplete()
         {
-            if (consumePlayerImportOnBansComplete)
+            if (consumePlayerImportOnClientBansComplete)
             {
                 var noiPlayer = Main.LocalPlayer.GetModPlayer<NoiPlayer>();
                 if (!noiPlayer.ServersWherePlayerHasUsedImport.Contains(NoiSystem.WorldID))
                     noiPlayer.ServersWherePlayerHasUsedImport.Add(NoiSystem.WorldID);
     
-                consumePlayerImportOnBansComplete = false;
+                consumePlayerImportOnClientBansComplete = false;
             }
+        }
+
+        private void onServerBansComplete()
+        {
         }
     }
 }

@@ -26,8 +26,13 @@ namespace NoOutsideItems
 
         public override void OnChanged()
         {
-            if (Main.LocalPlayer.active)
-                ((NoOutsideItems)this.Mod).DecideBans();
+            var mod = ((NoOutsideItems)this.Mod);
+
+            if (Main.netMode != NetmodeID.Server && Main.LocalPlayer.active)
+                mod.DecideBansOnClient();
+
+            if (Main.netMode != NetmodeID.MultiplayerClient)
+                mod.DecideBansOnServer();
         }
     }
 }
