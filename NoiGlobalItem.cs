@@ -17,7 +17,7 @@ namespace NoOutsideItems
 {
     public class NoiGlobalItem : GlobalItem
     {
-        public string WorldID = "";
+        public Guid WorldID = Guid.Empty;
         public string WorldName = "";
 
         public override bool InstancePerEntity
@@ -27,7 +27,7 @@ namespace NoOutsideItems
 
         public override bool CanStack(Item destination, Item source)
         {
-            if (destination.active && source.active && destination.GetGlobalItem<NoiGlobalItem>().WorldID != source.GetGlobalItem<NoiGlobalItem>().WorldID)
+            if (destination.active && source.active && !destination.GetGlobalItem<NoiGlobalItem>().WorldID.Equals(source.GetGlobalItem<NoiGlobalItem>().WorldID))
                 return false;
             else
                 return base.CanStack(destination, source);
@@ -35,10 +35,9 @@ namespace NoOutsideItems
 
         public override void SaveData(Item item, TagCompound tag)
         {
-            // On the server side, we only bother saving the WorldID and WorldName if they differ from the current world (just to avoid unnecessarily wasting disk space, memory, network bandwidth)
-            if (item.type != NoOutsideItems.BannedItemType && (Main.netMode != NetmodeID.Server || WorldID != NoiSystem.WorldID))
+            if (item.type != NoOutsideItems.BannedItemType)
             {
-                tag["WorldID"] = WorldID;
+                tag["WorldID"] = WorldID.ToByteArray();
                 tag["WorldName"] = WorldName;
             }
         }
@@ -47,48 +46,76 @@ namespace NoOutsideItems
         {
             if (item.type != NoOutsideItems.BannedItemType)
             {
-                WorldID = tag.Get<string>("WorldID");
-                WorldName = tag.Get<string>("WorldName");
+                if (tag.ContainsKey("WorldID"))
+                    WorldID = new Guid(tag.GetByteArray("WorldID"));
+
+                if (tag.ContainsKey("WorldName"))
+                    WorldName = tag.Get<string>("WorldName");
             }
         }
 
         public override void NetSend(Item item, BinaryWriter writer)
         {
-            // Don't waste bandwidth sending the WorldID and WorldName if they're for the current world
-            if (WorldID == NoiSystem.WorldID)
+            if (item.type != NoOutsideItems.BannedItemType)
             {
-                writer.Write(""); // WorldID
-                writer.Write(""); // WorldName
-            }
-            else
-            {
-                writer.Write(WorldID);
-                writer.Write(WorldName);
+                writer.Write(WorldID.ToByteArray());
+
+                // Save a little bandwidth by not sending the current world name
+                if (WorldID.Equals(Main.ActiveWorldFileData.UniqueId))
+                    writer.Write("");
+                else
+                    writer.Write(WorldName);
             }
         }
 
         public override void NetReceive(Item item, BinaryReader reader)
         {
-            WorldID = reader.ReadString();
-            WorldName = reader.ReadString();
+            if (item.type != NoOutsideItems.BannedItemType)
+            {
+                WorldID = new Guid(reader.ReadBytes(16));
+                WorldName = reader.ReadString();
+
+                // Save a little bandwidth by not sending the current world name
+                if (WorldID.Equals(Main.ActiveWorldFileData.UniqueId))
+                    WorldName = Main.worldName;
+            }
         }
 
         public override void ModifyTooltips(Item item, List<TooltipLine> tooltips)
         {
-            // Don't add these tooltips for BannedItemType because it handles its own tooltips in NoiBannedItem.cs; these tooltips are meant for all other item types.
-
-            if (ModContent.GetInstance<ClientConfig>().ShowWorldNameInItemTooltips && item.type != NoOutsideItems.BannedItemType)
+            if (item.type != NoOutsideItems.BannedItemType)
             {
-                var worldNameLine = new TooltipLine(this.Mod, "WorldName", Language.GetTextValue("World") + ": " + (String.IsNullOrWhiteSpace(WorldID) ? Main.worldName : WorldName));
-                worldNameLine.OverrideColor = new Color(150, 150, 150);
-                tooltips.Add(worldNameLine);
+                if (ModContent.GetInstance<ClientConfig>().ShowWorldNameInItemTooltips)
+                {
+                    var worldNameLine = new TooltipLine(this.Mod, "WorldName", Language.GetTextValue("World") + ": " + WorldName);
+                    worldNameLine.OverrideColor = new Color(150, 150, 150);
+                    tooltips.Add(worldNameLine);
+                }
+
+                if (ModContent.GetInstance<ClientConfig>().ShowWorldIDInItemTooltips && !WorldID.Equals(NoOutsideItems.UnknownWorldID))
+                {
+                    var worldIDLine = new TooltipLine(this.Mod, "WorldID", "ID: " + WorldID.ToString());
+                    worldIDLine.OverrideColor = new Color(150, 150, 150);
+                    tooltips.Add(worldIDLine);
+                }
             }
+        }
 
-            if (ModContent.GetInstance<ClientConfig>().ShowWorldIDInItemTooltips && item.type != NoOutsideItems.BannedItemType)
+        public override void OnCreated(Item item, ItemCreationContext context)
+        {
+            if (item.type != NoOutsideItems.BannedItemType)
             {
-                var worldIDLine = new TooltipLine(this.Mod, "WorldID", "ID: " + (String.IsNullOrWhiteSpace(WorldID) ? NoiSystem.WorldID : WorldID));
-                worldIDLine.OverrideColor = new Color(150, 150, 150);
-                tooltips.Add(worldIDLine);
+                if (WorldID.Equals(Guid.Empty))
+                    SetWorldIDToCurrentWorld(item);
+            }
+        }
+
+        public override void OnSpawn(Item item, IEntitySource source)
+        {
+            if (item.type != NoOutsideItems.BannedItemType)
+            {
+                if (WorldID.Equals(Guid.Empty))
+                    SetWorldIDToCurrentWorld(item);
             }
         }
 
@@ -96,10 +123,9 @@ namespace NoOutsideItems
         {
             if (item.type != NoOutsideItems.BannedItemType)
             {
-                WorldID = NoiSystem.WorldID;
+                WorldID = Main.ActiveWorldFileData.UniqueId;
                 WorldName = Main.worldName ?? "";
             }
         }
-
     }
 }

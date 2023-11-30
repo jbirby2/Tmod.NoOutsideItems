@@ -18,7 +18,7 @@ namespace NoOutsideItems
     /// </summary>
     public class NoiBannedItem : GlobalItem
     {
-        public string OriginalWorldID = "";
+        public Guid OriginalWorldID = Guid.Empty;
         public string OriginalWorldName = "";
 
         public override bool InstancePerEntity
@@ -30,7 +30,7 @@ namespace NoOutsideItems
         {
             if (item.type == NoOutsideItems.BannedItemType)
             {
-                tag["OriginalWorldID"] = OriginalWorldID;
+                tag["OriginalWorldID"] = OriginalWorldID.ToByteArray();
                 tag["OriginalWorldName"] = OriginalWorldName;
             }
         }
@@ -39,7 +39,7 @@ namespace NoOutsideItems
         {
             if (item.type == NoOutsideItems.BannedItemType)
             {
-                OriginalWorldID = tag.Get<string>("OriginalWorldID");
+                OriginalWorldID = new Guid(tag.GetByteArray("OriginalWorldID"));
                 OriginalWorldName = tag.Get<string>("OriginalWorldName");
             }
         }
@@ -48,8 +48,13 @@ namespace NoOutsideItems
         {
             if (item.type == NoOutsideItems.BannedItemType)
             {
-                writer.Write(OriginalWorldID);
-                writer.Write(OriginalWorldName);
+                writer.Write(OriginalWorldID.ToByteArray());
+
+                // Save a little bandwidth by not sending the current world name
+                if (OriginalWorldID.Equals(Main.ActiveWorldFileData.UniqueId))
+                    writer.Write("");
+                else
+                    writer.Write(OriginalWorldName);
             }
         }
 
@@ -57,8 +62,12 @@ namespace NoOutsideItems
         {
             if (item.type == NoOutsideItems.BannedItemType)
             {
-                OriginalWorldID = reader.ReadString();
+                OriginalWorldID = new Guid(reader.ReadBytes(16));
                 OriginalWorldName = reader.ReadString();
+
+                // Save a little bandwidth by not sending the current world name
+                if (OriginalWorldID.Equals(Main.ActiveWorldFileData.UniqueId))
+                    OriginalWorldName = Main.worldName;
             }
         }
 
@@ -70,9 +79,9 @@ namespace NoOutsideItems
                 originalWorldNameLine.OverrideColor = new Color(150, 150, 150);
                 tooltips.Add(originalWorldNameLine);
 
-                if (ModContent.GetInstance<ClientConfig>().ShowWorldIDInItemTooltips)
+                if (ModContent.GetInstance<ClientConfig>().ShowWorldIDInItemTooltips && !OriginalWorldID.Equals(NoOutsideItems.UnknownWorldID))
                 {
-                    var originalWorldIDLine = new TooltipLine(this.Mod, "OriginalWorldID", "ID: " + OriginalWorldID);
+                    var originalWorldIDLine = new TooltipLine(this.Mod, "OriginalWorldID", "ID: " + OriginalWorldID.ToString());
                     originalWorldIDLine.OverrideColor = new Color(150, 150, 150);
                     tooltips.Add(originalWorldIDLine);
                 }

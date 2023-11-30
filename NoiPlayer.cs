@@ -14,6 +14,7 @@ namespace NoOutsideItems
 {
     public class NoiPlayer : ModPlayer
     {
+        // TagCompound can't easily store Lists of Guids, so store them as strings instead
         public IList<string> ServersWherePlayerHasUsedImport = new List<string>();
 
         public override void OnEnterWorld()
@@ -23,32 +24,10 @@ namespace NoOutsideItems
                 var noiItem = item.GetGlobalItem<NoiGlobalItem>();
 
                 // If there's no WorldID stored for this item, then it's impossible to ever know what world this item came from.
-                if (String.IsNullOrWhiteSpace(noiItem.WorldID))
+                if (noiItem.WorldID.Equals(Guid.Empty))
                 {
-                    noiItem.WorldID = "unknown";
+                    noiItem.WorldID = NoOutsideItems.UnknownWorldID;
                     noiItem.WorldName = Language.GetTextValue("Unknown");
-                }
-            }
-        }
-
-        public override void PreSavePlayer()
-        {
-            if (Main.LocalPlayer.active)
-            {
-                var noiPlayer = Main.LocalPlayer.GetModPlayer<NoiPlayer>();
-
-                foreach (var item in noiPlayer.GetAllActiveItems())
-                {
-                    if (item.type != NoOutsideItems.BannedItemType)
-                    {
-                        var noiItem = item.GetGlobalItem<NoiGlobalItem>();
-
-                        if (String.IsNullOrWhiteSpace(noiItem.WorldID) && !String.IsNullOrWhiteSpace(NoiSystem.WorldID))
-                        {
-                            // This item must have been obtained during this play session, so set its WorldID and WorldName
-                            noiItem.SetWorldIDToCurrentWorld(item);
-                        }
-                    }
                 }
             }
         }

@@ -10,6 +10,8 @@ namespace NoOutsideItems
 {
 	public class NoOutsideItems : Mod
 	{
+        public static readonly Guid UnknownWorldID = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
         public static int BannedItemType { get; private set; }
 
         private static Mod itemBanMod = null;
@@ -71,14 +73,14 @@ namespace NoOutsideItems
 
             if (Main.netMode == NetmodeID.Server)
             {
-                return (!String.IsNullOrWhiteSpace(noiItem.WorldID) && noiItem.WorldID != NoiSystem.WorldID);
+                return !noiItem.WorldID.Equals(Main.ActiveWorldFileData.UniqueId);
             }
             else
             {
                 bool importUnknownItemsOnFirstLogin = ModContent.GetInstance<ServerConfig>().ImportUnknownItemsOnFirstLogin;
                 var noiPlayer = Main.LocalPlayer.GetModPlayer<NoiPlayer>();
 
-                if (noiItem.WorldID == "unknown" && importUnknownItemsOnFirstLogin && !noiPlayer.ServersWherePlayerHasUsedImport.Contains(NoiSystem.WorldID))
+                if (noiItem.WorldID.Equals(NoOutsideItems.UnknownWorldID) && importUnknownItemsOnFirstLogin && !noiPlayer.ServersWherePlayerHasUsedImport.Contains(Main.ActiveWorldFileData.UniqueId.ToString()))
                 {
                     noiItem.SetWorldIDToCurrentWorld(item);
                     consumePlayerImportOnClientBansComplete = true;
@@ -90,7 +92,7 @@ namespace NoOutsideItems
                 }
                 else
                 {
-                    return (noiItem.WorldID != NoiSystem.WorldID);
+                    return !noiItem.WorldID.Equals(Main.ActiveWorldFileData.UniqueId);
                 }
             }
         }
@@ -101,9 +103,9 @@ namespace NoOutsideItems
             {
                 var noiItem = item.GetGlobalItem<NoiGlobalItem>();
 
-                if (String.IsNullOrWhiteSpace(noiItem.WorldID))
+                if (noiItem.WorldID.Equals(Guid.Empty))
                     noiItem.SetWorldIDToCurrentWorld(item);
-                else if (noiItem.WorldID != NoiSystem.WorldID)
+                else if (!noiItem.WorldID.Equals(Main.ActiveWorldFileData.UniqueId))
                     DecideBansOnClient();
             }
         }
@@ -113,26 +115,19 @@ namespace NoOutsideItems
             var noiBannedItem = item.GetGlobalItem<NoiBannedItem>();
             var noiOriginalItem = cloneOfOriginalItem.GetGlobalItem<NoiGlobalItem>();
 
-            if (Main.netMode == NetmodeID.Server && String.IsNullOrWhiteSpace(noiOriginalItem.WorldID))
-            {
-                // To avoid wasting resources, the server normally doesn't save its own WorldID and WorldName on server-side items.
-                noiBannedItem.OriginalWorldID = NoiSystem.WorldID;
-                noiBannedItem.OriginalWorldName = Main.worldName ?? "";
-            }
-            else
-            {
-                noiBannedItem.OriginalWorldID = noiOriginalItem.WorldID;
-                noiBannedItem.OriginalWorldName = noiOriginalItem.WorldName;
-            }
+            noiBannedItem.OriginalWorldID = noiOriginalItem.WorldID;
+            noiBannedItem.OriginalWorldName = noiOriginalItem.WorldName;
         }
 
         private void onClientBansComplete()
         {
             if (consumePlayerImportOnClientBansComplete)
             {
+                Logger.Debug("Player " + Main.LocalPlayer.name + " has used their one-time automatic import of items from unknown worlds (WorldID " + Main.ActiveWorldFileData.UniqueId.ToString() + ")");
+
                 var noiPlayer = Main.LocalPlayer.GetModPlayer<NoiPlayer>();
-                if (!noiPlayer.ServersWherePlayerHasUsedImport.Contains(NoiSystem.WorldID))
-                    noiPlayer.ServersWherePlayerHasUsedImport.Add(NoiSystem.WorldID);
+                if (!noiPlayer.ServersWherePlayerHasUsedImport.Contains(Main.ActiveWorldFileData.UniqueId.ToString()))
+                    noiPlayer.ServersWherePlayerHasUsedImport.Add(Main.ActiveWorldFileData.UniqueId.ToString());
     
                 consumePlayerImportOnClientBansComplete = false;
             }
