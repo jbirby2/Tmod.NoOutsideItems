@@ -87,18 +87,21 @@ namespace NoOutsideItems
             {
                 var clientConfig = ModContent.GetInstance<ClientConfig>();
 
-                if (clientConfig.ShowWorldNameInItemTooltips)
+                if (!WorldID.Equals(Guid.Empty)) // it will be Guid.Empty for item icons in the crafting GUI and CheatSheet GUI
                 {
-                    var worldNameLine = new TooltipLine(this.Mod, "WorldName", Language.GetTextValue("World") + ": " + WorldName);
-                    worldNameLine.OverrideColor = new Color(150, 150, 150);
-                    tooltips.Add(worldNameLine);
-                }
+                    if (clientConfig.ShowWorldNameInItemTooltips)
+                    {
+                        var worldNameLine = new TooltipLine(this.Mod, "WorldName", Language.GetTextValue("World") + ": " + WorldName);
+                        worldNameLine.OverrideColor = new Color(150, 150, 150);
+                        tooltips.Add(worldNameLine);
+                    }
 
-                if (clientConfig.ShowWorldIDInItemTooltips && !WorldID.Equals(NoOutsideItems.UnknownWorldID))
-                {
-                    var worldIDLine = new TooltipLine(this.Mod, "WorldID", "ID: " + WorldID.ToString());
-                    worldIDLine.OverrideColor = new Color(150, 150, 150);
-                    tooltips.Add(worldIDLine);
+                    if (clientConfig.ShowWorldIDInItemTooltips && !WorldID.Equals(NoOutsideItems.UnknownWorldID))
+                    {
+                        var worldIDLine = new TooltipLine(this.Mod, "WorldID", "ID: " + WorldID.ToString());
+                        worldIDLine.OverrideColor = new Color(150, 150, 150);
+                        tooltips.Add(worldIDLine);
+                    }
                 }
             }
         }
