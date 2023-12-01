@@ -85,14 +85,16 @@ namespace NoOutsideItems
         {
             if (item.type != NoOutsideItems.BannedItemType)
             {
-                if (ModContent.GetInstance<ClientConfig>().ShowWorldNameInItemTooltips)
+                var clientConfig = ModContent.GetInstance<ClientConfig>();
+
+                if (clientConfig.ShowWorldNameInItemTooltips)
                 {
                     var worldNameLine = new TooltipLine(this.Mod, "WorldName", Language.GetTextValue("World") + ": " + WorldName);
                     worldNameLine.OverrideColor = new Color(150, 150, 150);
                     tooltips.Add(worldNameLine);
                 }
 
-                if (ModContent.GetInstance<ClientConfig>().ShowWorldIDInItemTooltips && !WorldID.Equals(NoOutsideItems.UnknownWorldID))
+                if (clientConfig.ShowWorldIDInItemTooltips && !WorldID.Equals(NoOutsideItems.UnknownWorldID))
                 {
                     var worldIDLine = new TooltipLine(this.Mod, "WorldID", "ID: " + WorldID.ToString());
                     worldIDLine.OverrideColor = new Color(150, 150, 150);
@@ -112,15 +114,21 @@ namespace NoOutsideItems
 
         public override void OnSpawn(Item item, IEntitySource source)
         {
+            this.Mod.Logger.Debug("joestub NoiGlobalItem.OnSpawn " + item.ToString());
+
             if (item.type != NoOutsideItems.BannedItemType)
             {
                 if (WorldID.Equals(Guid.Empty))
                     SetWorldIDToCurrentWorld(item);
+
+                this.Mod.Logger.Debug("joestub NoiGlobalItem.OnSpawn done, " + WorldID.ToString() + " " + WorldName);
             }
         }
 
         public void SetWorldIDToCurrentWorld(Item item)
         {
+            this.Mod.Logger.Debug("joestub NoiGlobalItem.SetWorldIDToCurrentWorld() " + item.ToString() + " " + Main.ActiveWorldFileData.UniqueId.ToString() + " " + Main.worldName);
+
             if (item.type != NoOutsideItems.BannedItemType)
             {
                 WorldID = Main.ActiveWorldFileData.UniqueId;

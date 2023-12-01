@@ -17,7 +17,8 @@ namespace NoOutsideItems
         private static Mod itemBanMod = null;
         private static Func<Item, bool> decideBanCallback;
         private static Action<Item> inventorySlotChangedCallback;
-        private static Action<Item, Item> itemBannedCallback;
+        private static Func<Item, object> itemPreBanCallback;
+        private static Action<Item, object> itemPostBanCallback;
         private static Action clientBansCompleteCallback;
         private static Action serverBansCompleteCallback;
         private static bool consumePlayerImportOnClientBansComplete = false;
@@ -33,8 +34,9 @@ namespace NoOutsideItems
             inventorySlotChangedCallback = (Action<Item>)onInventorySlotChanged;
             itemBanMod.Call("OnInventorySlotChanged", inventorySlotChangedCallback);
 
-            itemBannedCallback = (Action<Item, Item>)onItemBanned;
-            itemBanMod.Call("OnItemBanned", itemBannedCallback);
+            itemPreBanCallback = (Func<Item, object>)onItemPreBan;
+            itemPostBanCallback = (Action<Item, object>)onItemPostBan;
+            itemBanMod.Call("OnItemBan", itemPreBanCallback, itemPostBanCallback);
 
             clientBansCompleteCallback = (Action)onClientBansComplete;
             itemBanMod.Call("OnClientBansComplete", clientBansCompleteCallback);
@@ -47,7 +49,7 @@ namespace NoOutsideItems
         {
             itemBanMod.Call("OffDecideBan", decideBanCallback);
             itemBanMod.Call("OffInventorySlotChanged", inventorySlotChangedCallback);
-            itemBanMod.Call("OffItemBanned", itemBannedCallback);
+            itemBanMod.Call("OffItemBan", itemPreBanCallback, itemPostBanCallback);
             itemBanMod.Call("OffClientBansComplete", clientBansCompleteCallback);
             itemBanMod.Call("OffServerBansComplete", serverBansCompleteCallback);
         }
@@ -110,13 +112,28 @@ namespace NoOutsideItems
             }
         }
 
-        private void onItemBanned(Item item, Item cloneOfOriginalItem)
+        private object onItemPreBan(Item item)
+        {
+            var noiItem = item.GetGlobalItem<NoiGlobalItem>();
+
+            // So far, the only situation where I've seen this happen is when you drag a banned item from Cheat Sheet directly into the world, without it entering an inventory.
+            // When that happens, the WorldID gets set in OnSpawn like normal, but for some reason it doesn't get retained, and will be back to its default value of Guid.Empty again at this point.
+            if (noiItem.WorldID.Equals(Guid.Empty))
+                noiItem.SetWorldIDToCurrentWorld(item);
+
+            Logger.Debug("joestub NoOutsideItems.onItemPreBan(): " + item.ToString() + " " + noiItem.WorldID.ToString() + " " + noiItem.WorldName);
+
+            return new object[] { noiItem.WorldID, noiItem.WorldName };
+        }
+
+        private void onItemPostBan(Item item, object preBanState)
         {
             var noiBannedItem = item.GetGlobalItem<NoiBannedItem>();
-            var noiOriginalItem = cloneOfOriginalItem.GetGlobalItem<NoiGlobalItem>();
-
-            noiBannedItem.OriginalWorldID = noiOriginalItem.WorldID;
-            noiBannedItem.OriginalWorldName = noiOriginalItem.WorldName;
+            
+            var stateItems = (object[])preBanState;
+            Logger.Debug("joestub NoOutsideItems.onItemPostBan(): " + item.ToString() + " " + stateItems[0].ToString() + " " + stateItems[1].ToString());
+            noiBannedItem.OriginalWorldID = (Guid)stateItems[0];
+            noiBannedItem.OriginalWorldName = (string)stateItems[1];
         }
 
         private void onClientBansComplete()

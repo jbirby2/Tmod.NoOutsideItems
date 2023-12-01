@@ -75,11 +75,16 @@ namespace NoOutsideItems
         {
             if (item.type == NoOutsideItems.BannedItemType)
             {
-                var originalWorldNameLine = new TooltipLine(this.Mod, "OriginalWorldName", Language.GetTextValue("World") + ": " + OriginalWorldName);
-                originalWorldNameLine.OverrideColor = new Color(150, 150, 150);
-                tooltips.Add(originalWorldNameLine);
+                var clientConfig = ModContent.GetInstance<ClientConfig>();
 
-                if (ModContent.GetInstance<ClientConfig>().ShowWorldIDInItemTooltips && !OriginalWorldID.Equals(NoOutsideItems.UnknownWorldID))
+                if (clientConfig.ShowWorldNameInItemTooltips || !OriginalWorldName.Equals(Main.ActiveWorldFileData.UniqueId))
+                {
+                    var originalWorldNameLine = new TooltipLine(this.Mod, "OriginalWorldName", Language.GetTextValue("World") + ": " + OriginalWorldName);
+                    originalWorldNameLine.OverrideColor = new Color(150, 150, 150);
+                    tooltips.Add(originalWorldNameLine);
+                }
+                
+                if (clientConfig.ShowWorldIDInItemTooltips && !OriginalWorldID.Equals(NoOutsideItems.UnknownWorldID))
                 {
                     var originalWorldIDLine = new TooltipLine(this.Mod, "OriginalWorldID", "ID: " + OriginalWorldID.ToString());
                     originalWorldIDLine.OverrideColor = new Color(150, 150, 150);
