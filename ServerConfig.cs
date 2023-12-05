@@ -18,15 +18,5 @@ namespace NoOutsideItems
         public bool ImportUnknownItemsOnFirstLogin;
 
 
-        public override void OnChanged()
-        {
-            var mod = ((NoOutsideItems)this.Mod);
-
-            if (Main.netMode != NetmodeID.Server && Main.LocalPlayer.active)
-                mod.DecideBansOnClient();
-
-            if (Main.netMode != NetmodeID.MultiplayerClient)
-                mod.DecideBansOnServer();
-        }
     }
 }

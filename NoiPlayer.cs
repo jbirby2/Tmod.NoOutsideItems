@@ -1,4 +1,5 @@
-﻿using System;
+﻿using log4net.Repository.Hierarchy;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,16 +20,32 @@ namespace NoOutsideItems
 
         public override void OnEnterWorld()
         {
+            bool importUnknownItemsOnFirstLogin = ModContent.GetInstance<ServerConfig>().ImportUnknownItemsOnFirstLogin;
+
+            bool importUsed = false;
             foreach (var item in GetAllActiveItems())
             {
                 var noiItem = item.GetGlobalItem<NoiGlobalItem>();
 
-                // If there's no WorldID stored for this item, then it's impossible to ever know what world this item came from.
+                // Set any existing items with empty WorldIDs to the "Unknown" WorldID
                 if (noiItem.WorldID.Equals(Guid.Empty))
                 {
                     noiItem.WorldID = NoOutsideItems.UnknownWorldID;
                     noiItem.WorldName = Language.GetTextValue("Unknown");
                 }
+
+                // Try to use the player's one-time unknown item import for this world
+                if (importUnknownItemsOnFirstLogin && noiItem.WorldID.Equals(NoOutsideItems.UnknownWorldID) && !ServersWherePlayerHasUsedImport.Contains(Main.ActiveWorldFileData.UniqueId.ToString()))
+                {
+                    noiItem.SetWorldIDToCurrentWorld(item);
+                    importUsed = true;
+                }
+            }
+
+            if (importUsed && !ServersWherePlayerHasUsedImport.Contains(Main.ActiveWorldFileData.UniqueId.ToString()))
+            {
+                ServersWherePlayerHasUsedImport.Add(Main.ActiveWorldFileData.UniqueId.ToString());
+                this.Mod.Logger.Debug("Player " + this.Player.name + " has used their one-time automatic import of items from unknown worlds in world \"" + Main.worldName + "\" (WorldID " + Main.ActiveWorldFileData.UniqueId.ToString() + ")");
             }
         }
 
