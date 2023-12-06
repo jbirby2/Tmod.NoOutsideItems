@@ -68,7 +68,10 @@ namespace NoOutsideItems
             }
             else
             {
-                return !noiItem.WorldID.Equals(Main.ActiveWorldFileData.UniqueId);
+                // Since any item in a player's inventory with a WorldID of Guid.Empty will be changed to UnknownWorldID in OnEnterWorld(), it should be
+                // safe to assume that any item we encounter with a WorldID of Guid.Empty came from the current world.
+
+                return (!noiItem.WorldID.Equals(Guid.Empty) && !noiItem.WorldID.Equals(Main.ActiveWorldFileData.UniqueId));
             }
         }
 
@@ -89,6 +92,7 @@ namespace NoOutsideItems
 
             // So far, the only situation where I've seen this happen is when you drag a banned item from Cheat Sheet directly into the world, without it entering an inventory.
             // When that happens, the WorldID gets set in OnSpawn like normal, but for some reason it doesn't get retained, and will be back to its default value of Guid.Empty again at this point.
+            // joestub: delete this now that we're setting WorldID in decideBan?
             if (noiItem.WorldID.Equals(Guid.Empty))
                 noiItem.SetWorldIDToCurrentWorld(item);
 
